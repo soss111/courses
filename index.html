@@ -292,23 +292,25 @@ async function openModal(c) {
     console.log("Parsed rows count:", rows.length, rows.length ? Object.keys(rows[0]) : "no keys", rows.slice(0,3));
     const chapters = parseSyllabus(rows);
     if (!chapters.length) { body.innerHTML = '<p style="color:var(--ink-3);font-size:13px;padding:1rem 0">No syllabus data found.</p>'; return; }
-    body.innerHTML = chapters.map(ch => `
-      <div class="chapter">
-        <div class="ch-title">${ch.num ? `<span class="ch-num">${ch.num}</span>` : ''}${ch.title.replace(/^\d+\.\s*/,'')}</div>
-        ${ch.items.map(item => `
-          <div class="topic-row">
-            <span class="topic-text">${item.topic}</span>
-            ${item.notes ? `<span class="topic-notes">${item.notes.split(",").map(n => {
-              n = n.trim();
-              if (n.match(/^https?:\/\//)) {
-                const label = n.includes('youtu') ? '▶ YouTube' : n.includes('drive.google') ? '📁 Drive' : '🔗 Link';
-                return \`<a href="\${n}" target="_blank" style="color:var(--accent-m);text-decoration:none;font-family:var(--mono);font-size:11px;margin-right:6px">\${label}</a>\`;
-              }
-              return \`<span style="margin-right:4px">\${n}</span>\`;
-            }).join('')}</span>` : ''}
-            ${item.type === 'GRADED' ? `<span class="graded-badge">hindeline</span>` : ''}
-          </div>`).join('')}
-      </div>`).join('');
+    function renderNotes(notes) {
+      return notes.split(',').map(n => {
+        n = n.trim();
+        if (n.match(/^https?:\/\//)) {
+          const label = n.includes('youtu') ? '&#9654; YouTube' : n.includes('drive.google') ? '&#128193; Drive' : '&#128279; Link';
+          return '<a href="' + n + '" target="_blank" style="color:var(--accent-m);text-decoration:none;font-family:var(--mono);font-size:11px;margin-right:6px">' + label + '</a>';
+        }
+        return '<span style="margin-right:4px">' + n + '</span>';
+      }).join('');
+    }
+    body.innerHTML = chapters.map(ch => {
+      const items = ch.items.map(item => {
+        const notes = item.notes ? '<span class="topic-notes">' + renderNotes(item.notes) + '</span>' : '';
+        const badge = item.type === 'GRADED' ? '<span class="graded-badge">hindeline</span>' : '';
+        return '<div class="topic-row"><span class="topic-text">' + item.topic + '</span>' + notes + badge + '</div>';
+      }).join('');
+      const num = ch.num ? '<span class="ch-num">' + ch.num + '</span>' : '';
+      return '<div class="chapter"><div class="ch-title">' + num + ch.title + '</div>' + items + '</div>';
+    }).join('');
   } catch(e) {
     body.innerHTML = `<p style="color:#991B1B;font-size:13px;padding:1rem 0">Could not load syllabus: ${e.message}</p>`;
   }
