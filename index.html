@@ -411,7 +411,7 @@
 <script>
   // ─── CONFIGURE THIS ────────────────────────────────────────────────────────
   // Paste your Google Sheets "Publish to web → CSV" URL here:
-  const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGhe7zNhW6SIm8pRNa368MpKixmvc_6sWbLWmYlEMfV-VoWKHD51-YV4WOtiBaQw/pub?gid=0&single=true&output=csv';
+  const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGhe7zNhW6SIm8pRNa368MpKixmvc_6sWbLWmYlEMfV-VoWKHD51-YV4WOtiBaQw/pub?output=csv';
   // ──────────────────────────────────────────────────────────────────────────
 
   let allCourses = [];
@@ -543,6 +543,21 @@
     render();
   });
 
+  async function fetchCSV(url) {
+    // Try direct fetch first (works when served from a web server)
+    try {
+      const res = await fetch(url, {mode: 'cors'});
+      if (res.ok) return await res.text();
+    } catch(e) {}
+    // Fallback: jsonp-style via SheetDB-free workaround using gviz
+    const gvizUrl = url.replace('/pub?', '/gviz/tq?tqx=out:csv&').replace('output=csv', '');
+    try {
+      const res = await fetch(gvizUrl, {mode: 'cors'});
+      if (res.ok) return await res.text();
+    } catch(e) {}
+    throw new Error('CORS blocked. Please serve this file from a web server, or open it via a local server (e.g. VS Code Live Server).');
+  }
+
   async function loadData() {
     if (!SHEET_CSV_URL || SHEET_CSV_URL.includes('YOUR_GOOGLE')) {
       document.getElementById('grid').innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Set <code>SHEET_CSV_URL</code> in the script to load courses from Google Sheets.</div>`;
@@ -550,15 +565,16 @@
       return;
     }
     try {
-      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(SHEET_CSV_URL);
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const text = await res.text();
+      const text = await fetchCSV(SHEET_CSV_URL);
       allCourses = parseCSV(text);
+      if (allCourses.length === 0) throw new Error('Sheet parsed but no rows found. Check column headers include "name".');
       buildFilters(allCourses);
       render();
     } catch (err) {
       console.error('Course load error:', err);
+      document.getElementById('error-banner').innerHTML =
+        '<strong>Could not load course data.</strong><br>' + err.message +
+        '<br><br><strong>Quick fix:</strong> Upload this HTML file to any web host (GitHub Pages, Netlify, school server), or run a local server.';
       document.getElementById('error-banner').style.display = 'block';
       document.getElementById('grid').innerHTML = '';
     }
