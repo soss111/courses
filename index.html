@@ -298,7 +298,14 @@ async function openModal(c) {
         ${ch.items.map(item => `
           <div class="topic-row">
             <span class="topic-text">${item.topic}</span>
-            ${item.notes ? `<span class="topic-notes">${item.notes}</span>` : ''}
+            ${item.notes ? `<span class="topic-notes">${item.notes.split(",").map(n => {
+              n = n.trim();
+              if (n.match(/^https?:\/\//)) {
+                const label = n.includes('youtu') ? '▶ YouTube' : n.includes('drive.google') ? '📁 Drive' : '🔗 Link';
+                return \`<a href="\${n}" target="_blank" style="color:var(--accent-m);text-decoration:none;font-family:var(--mono);font-size:11px;margin-right:6px">\${label}</a>\`;
+              }
+              return \`<span style="margin-right:4px">\${n}</span>\`;
+            }).join('')}</span>` : ''}
             ${item.type === 'GRADED' ? `<span class="graded-badge">hindeline</span>` : ''}
           </div>`).join('')}
       </div>`).join('');
