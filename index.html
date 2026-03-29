@@ -144,26 +144,32 @@ async function fetchCSV(gid) {
 }
 
 function parseCSV(text) {
-  const lines = text.split(/\r?\n/);
-  function split(line) {
+  text = text.replace(/^\uFEFF/, '');
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  // auto-detect delimiter: tab or comma
+  const delim = lines[0].includes('\t') ? '\t' : ',';
+  function splitLine(line) {
+    if (delim === '\t') return line.split('\t').map(v => v.trim());
     const r = []; let cur = '', q = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') { if (q && line[i+1]==='"') { cur+='"'; i++; } else q=!q; }
-      else if (ch === ',' && !q) { r.push(cur.trim()); cur = ''; }
+      else if (ch === ',' && !q) { r.push(cur.trim()); cur=''; }
       else cur += ch;
     }
     r.push(cur.trim()); return r;
   }
-  const headers = split(lines[0]).map(h => h.toLowerCase().trim().replace(/^\uFEFF/, "").replace(/^\xEF\xBB\xBF/, ""));
+  const headers = splitLine(lines[0]).map(h => h.toLowerCase().trim());
+  console.log('Delimiter:', delim === '\t' ? 'TAB' : 'COMMA', 'Headers:', headers);
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
-    const vals = split(lines[i]);
+    const vals = splitLine(lines[i]);
     const row = {};
-    headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
+    headers.forEach((h, idx) => { row[h] = (vals[idx] || '').trim(); });
     if (Object.values(row).some(v => v)) rows.push(row);
   }
+  console.log('Rows parsed:', rows.length, rows[0]);
   return rows;
 }
 
