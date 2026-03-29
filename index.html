@@ -119,7 +119,7 @@
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────────────────
 // Your Google Sheets document ID (from the URL)
-const DOC_ID = '1K19gBqARW5azBpg4-vJkAtSFkrPn3P4H';
+const DOC_ID = '2PACX-1vQTHd2PwXW7JVduANWASu26GaYYYyv_sEsbAWtLXtnDPjl-_BTudilpBZDa1ssSHQ';
 
 // After publishing, paste the gid for each sheet here.
 // In Google Sheets: click a tab → the URL shows ?gid=XXXXXXX
@@ -134,7 +134,7 @@ const SHEET_GIDS = {
 let allCourses = [], activeCategory = 'all', searchQuery = '';
 
 function csvUrl(gid) {
-  return `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=csv&gid=${gid}`;
+  return `https://docs.google.com/spreadsheets/d/e/${DOC_ID}/pub?gid=${gid}&single=true&output=csv`;
 }
 
 async function fetchCSV(gid) {
