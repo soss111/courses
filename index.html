@@ -181,6 +181,7 @@ function parseSyllabus(rows) {
     const act   = (row['activity'] || '').trim();
     const type  = (row['type'] || '').trim().toUpperCase();
     const notes = (row['links'] || '').trim();
+    const url   = (row['url'] || '').trim();
     // Chapter header: "chapter" col matches "1. Title", activity is empty
     const chMatch = ch.match(/^(\d+)\.\s*(.+)/);
     if (chMatch && !act) {
@@ -191,7 +192,7 @@ function parseSyllabus(rows) {
     // Topic row: activity has content
     if (!act) continue;
     if (!current) { current = { num: '', title: 'Topics', items: [] }; chapters.push(current); }
-    current.items.push({ topic: act, type, notes });
+    current.items.push({ topic: act, type, notes, url });
   }
   return chapters;
 }
@@ -292,7 +293,11 @@ async function openModal(c) {
     console.log("Parsed rows count:", rows.length, rows.length ? Object.keys(rows[0]) : "no keys", rows.slice(0,3));
     const chapters = parseSyllabus(rows);
     if (!chapters.length) { body.innerHTML = '<p style="color:var(--ink-3);font-size:13px;padding:1rem 0">No syllabus data found.</p>'; return; }
-    function renderNotes(notes) {
+    function renderNotes(notes, url) {
+      if (url && url.match(/^https?:\/\//)) {
+        const label = notes || (url.includes('youtu') ? '&#9654; YouTube' : url.includes('drive.google') ? '&#128193; Drive' : '&#128279; Link');
+        return '<a href="' + url + '" target="_blank" style="color:var(--accent-m);text-decoration:none;font-family:var(--mono);font-size:11px;margin-right:6px">&#128279; ' + label + '</a>';
+      }
       return notes.split(',').map(n => {
         n = n.trim();
         if (n.match(/^https?:\/\//)) {
@@ -304,7 +309,7 @@ async function openModal(c) {
     }
     body.innerHTML = chapters.map(ch => {
       const items = ch.items.map(item => {
-        const notes = item.notes ? '<span class="topic-notes">' + renderNotes(item.notes) + '</span>' : '';
+        const notes = (item.notes || item.url) ? '<span class="topic-notes">' + renderNotes(item.notes || '', item.url || '') + '</span>' : '';
         const badge = item.type === 'GRADED' ? '<span class="graded-badge">hindeline</span>' : '';
         return '<div class="topic-row"><span class="topic-text">' + item.topic + '</span>' + notes + badge + '</div>';
       }).join('');
