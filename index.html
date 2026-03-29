@@ -421,14 +421,23 @@
   function parseCSV(text) {
     const rows = [];
     const lines = text.split(/\r?\n/);
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+    if (!lines.length) return rows;
+    function splitLine(line) {
+      const result = []; let cur = '', inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { if (inQuote && line[i+1] === '"') { cur += '"'; i++; } else inQuote = !inQuote; }
+        else if (ch === ',' && !inQuote) { result.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      result.push(cur.trim()); return result;
+    }
+    const headers = splitLine(lines[0]).map(h => h.toLowerCase().trim());
     for (let i = 1; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
-      const vals = lines[i].match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) || [];
+      const vals = splitLine(lines[i]);
       const row = {};
-      headers.forEach((h, idx) => {
-        row[h] = (vals[idx] || '').replace(/^"|"$/g, '').trim();
-      });
+      headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
       if (row.name) rows.push(row);
     }
     return rows;
@@ -541,7 +550,8 @@
       return;
     }
     try {
-      const res = await fetch(SHEET_CSV_URL);
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(SHEET_CSV_URL);
+      const res = await fetch(proxyUrl);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
       allCourses = parseCSV(text);
